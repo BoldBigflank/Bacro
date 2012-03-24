@@ -1,0 +1,84 @@
+html
+    head
+        Title Bacro
+        link( href='stylesheets/styles.css', rel='stylesheet', type='text/css')
+        script(src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js")
+    body
+        div#header-bar <span style="padding: 5px">Bacro (<a href="https://github.com/smashcubed/Acro">GitHub</a>)</span>
+        div#page-wrapper
+            div.acronym-wrapper
+                span.acronym(align="center")= game.acronym
+            div.instructions-wrapper 
+                span.instructions= game.help
+                br
+                input(type="text", id="data")
+                input( type="button", id="datasend", value="sendEntry") Send Entry
+                input( type="button", id="start", value="newGame") New Round
+                
+            div.table-wrapper
+                table
+                    thead.grad 
+                        tr <th>Vote</th><th>Phrase</th><th>Votes</th></tr>
+                    tbody#phrases
+                        each entry in game.entries
+                            tr
+                                td= entry.name
+                                td= entry.text
+                                td= entry.votes
+        script(src="/socket.io/socket.io.js")
+        script.
+            var socket = io.connect();
+            socket.on('game', function (user, game) {
+                // The game is updated
+                gameObject = game
+                console.log("Received a game state " + game.state)
+                console.log(game);
+                // Populate the data
+                $(".instructions").text(game.help)
+                $("#phrases").empty()
+                for( x in game.entries ){
+                
+                    var entry = game.entries[x]
+                    console.log("entry")
+                    $("#phrases").append("<tr><td><input class='vote' type='button', id='vote', value='" + x + "'></input></td><td>" + entry.text + "</td><td><span class='votes'>" + entry.votes.toString() + "</span></td></tr>")
+                }
+                
+                // Hide/show data based on state
+                if(game.state == 'entry'){
+                    $("#phrases").hide()
+                    $(".votes").hide()
+                    $(".instructions").css({background: "#FAF2CF"})
+                }
+                else if (game.state == 'vote'){
+                    $("#phrases").show()
+                    $(".votes").hide()
+                    $(".instructions").css({background: "yellow"})
+                }
+                else if (game.state == 'result'){
+                    $("#phrases").show()
+                    $(".votes").show()
+                    $(".instructions").css({background: "white"})
+                }
+            });
+
+            $(function(){
+                // when the client clicks SEND
+                $('#start').click( function() {
+                    console.log("New Game")
+                    socket.emit('newround', {"text" : "Pwetty pweeze"});
+                });
+                $('#datasend').click( function() {
+                    // Make sure the phrase matches the acronym
+                    console.log("Send Entry")
+                    socket.emit('entry', {"text" : $("#data").val()});
+                    // Disable the input/button
+                });
+
+                // when the client hits ENTER on their keyboard
+                $('#data').keypress(function(e) {
+                    if(e.which == 13) {
+                        $(this).blur();
+                        $('#datasend').focus().click();
+                    }
+                });
+            });
