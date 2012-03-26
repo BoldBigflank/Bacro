@@ -1,4 +1,3 @@
-
 /**
  * Module dependencies.
  */
@@ -10,47 +9,47 @@ var express = require('express')
   , game = require("./game.js")
 
   app.use(express.static(__dirname + '/public'));
-
+  
 // routing
 app.get('/', function (req, res) {
-  res.sendfile(__dirname + '/index.html');
-});
-
-
-app.get('/game', function(req, res){
-	res.render(__dirname + '/views/game.jade', {title: "this is the title", game: game.getGame()});
-});
-
+  res.render(__dirname + '/views/game.jade', {title: "Bacro", game: game.getGame()});
+}); 
 
 
 // usernames which are currently connected to the chat
 var usernames = {};
 
 var changeState = function(state){
-	console.log("app changeState" + state)
-	if (game.setState(state)){
-		io.sockets.emit('game', 'SERVER', game.getGame())
+	var g = game.setState(state)
+	if (g){
+		io.sockets.emit('game', 'SERVER', {game: g})
 		return true
 	}
 	else
 		return false
 }
-
+ 
 io.sockets.on('connection', function (socket) {
 	// User requests a new game
 	socket.on('newround', function (data) {
-		console.log("***** NEW ROUND")
 		if(changeState('entry')){
-			setTimeout(function(){changeState('vote')}, 5000)
+			setTimeout(function(){changeState('vote')}, 4000)
 			setTimeout(function(){changeState('result')}, 10000)
 		}
 	});
 	
 	// User sends an entry or vote
 	socket.on('entry', function(data) {
-		console.log("*** ENTRY RECEIVED" + data.text)
-		if (game.addEntry(data.text))
-			io.sockets.emit('game', 'SERVER', game.getGame())
+		var entries = game.addEntry(data.text)
+		if (entries)
+			io.sockets.emit('game', 'SERVER', {entries: entries})
+	})
+    
+    // User sends an entry or vote
+	socket.on('vote', function(data) {
+		var votes = game.addVote(data.number)
+		if (votes)
+			io.sockets.emit('game', 'SERVER', {votes: votes})
 	})
 
 	// when the client emits 'sendchat', this listens and executes
@@ -71,7 +70,7 @@ io.sockets.on('connection', function (socket) {
 		socket.broadcast.emit('updatechat', 'SERVER', username + ' has connected');
 		// update the list of users in chat, client-side
 		io.sockets.emit('updateusers', usernames);
-	});
+	}); 
 
 	// when the user disconnects.. perform this
 	socket.on('disconnect', function(){
@@ -84,8 +83,6 @@ io.sockets.on('connection', function (socket) {
 	});
 });
 
-// Init the game
-
-
-app.listen(3000);
+app.listen(3000)
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
+//  module.exports = app

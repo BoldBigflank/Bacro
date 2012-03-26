@@ -7,47 +7,56 @@ html
         div#header-bar <span style="padding: 5px">Bacro (<a href="https://github.com/smashcubed/Acro">GitHub</a>)</span>
         div#page-wrapper
             div.acronym-wrapper
-                span.acronym(align="center")= game.acronym
+                span#acronym.acronym(align="center")
             div.instructions-wrapper 
-                span.instructions= game.help
+                span#instructions.instructions
                 br
-                input(type="text", id="data")
-                input( type="button", id="datasend", value="sendEntry") Send Entry
-                input( type="button", id="start", value="newGame") New Round
-                
+                input(type="text", id="data").entry
+                input( type="button", id="datasend", value="sendEntry").entry Send Entry
+                input( type="button", id="start", value="newGame").result New Round
+            div.instructions-wrapper
+                span.entry Entries: 
+                    span#entries-count.instructions 0
+                span.vote Votes: 
+                    span#votes-count.instructions 0
             div.table-wrapper
                 table
                     thead.grad 
                         tr <th>Vote</th><th>Phrase</th><th>Votes</th></tr>
                     tbody#phrases
-                        each entry in game.entries
-                            tr
-                                td= entry.name
-                                td= entry.text
-                                td= entry.votes
         script(src="/socket.io/socket.io.js")
         script.
-            var socket = io.connect();
-            socket.on('game', function (user, game) {
+            var setState = function(game){
                 // The game is updated
-                gameObject = game
-                console.log("Received a game state " + game.state)
-                console.log(game);
                 // Populate the data
-                $(".instructions").text(game.help)
+                $("#acronym").text(game.acronym)
+                $("#instructions").text(game.help)
+                $("#entries-count").text(game.entries.length.toString())
+                $("#votes-count").text(game.votes.toString())
                 $("#phrases").empty()
                 for( x in game.entries ){
-                
                     var entry = game.entries[x]
-                    console.log("entry")
-                    $("#phrases").append("<tr><td><input class='vote' type='button', id='vote', value='" + x + "'></input></td><td>" + entry.text + "</td><td><span class='votes'>" + entry.votes.toString() + "</span></td></tr>")
+                    $("#phrases").append("<tr><td><input class='voteButton' type='button' id='vote" + x + "' value='"+ x +"'></input></td><td>" + entry.text + "</td><td><span class='votes'>" + entry.votes.toString() + "</span></td></tr>")
+                    // Add the handler
+                    $('#vote' + x).click( function() {
+                        socket.emit('vote', {"number" : $(this).val()})
+                        // Disable the votes
+                        $(".voteButton").prop("disabled", true)
+                    })
+                    
                 }
-                
                 // Hide/show data based on state
+                $(".entry").hide()
+                $(".vote").hide()
+                $(".result").hide()
+                $("." + game.state).show()
+                
                 if(game.state == 'entry'){
                     $("#phrases").hide()
                     $(".votes").hide()
                     $(".instructions").css({background: "#FAF2CF"})
+                    $("#datasend").prop("disabled", false)
+                    $("#data").prop("disabled", false)
                 }
                 else if (game.state == 'vote'){
                     $("#phrases").show()
@@ -57,28 +66,46 @@ html
                 else if (game.state == 'result'){
                     $("#phrases").show()
                     $(".votes").show()
+                    $(".voteButton").prop("disabled", true)
                     $(".instructions").css({background: "white"})
                 }
-            });
+            
+            }
+            var socket = io.connect()
+            socket.on('game', function (user, data) {
+                console.log(data)
+                if(data.votes){
+                    $("#votes-count").text(data.votes.toString())
+                }
+                else if(data.entries){
+                    $("#entries-count").text(data.entries.toString())
+                }
+                else if(data.game){
+                    setState(data.game)
+                }
+            })
 
             $(function(){
                 // when the client clicks SEND
                 $('#start').click( function() {
-                    console.log("New Game")
-                    socket.emit('newround', {"text" : "Pwetty pweeze"});
-                });
+                    socket.emit('newround', {"text" : "Pwetty pweeze"})
+                })
                 $('#datasend').click( function() {
                     // Make sure the phrase matches the acronym
-                    console.log("Send Entry")
-                    socket.emit('entry', {"text" : $("#data").val()});
+                    socket.emit('entry', {"text" : $("#data").val()})
                     // Disable the input/button
-                });
+                    $("#datasend").prop("disabled", true)
+                    $("#data").prop("disabled", true)
+                })
 
                 // when the client hits ENTER on their keyboard
                 $('#data').keypress(function(e) {
                     if(e.which == 13) {
-                        $(this).blur();
-                        $('#datasend').focus().click();
+                        $(this).blur()
+                        $('#datasend').focus().click()
                     }
-                });
-            });
+                })
+            })
+        script
+            $(function(){setState(!{JSON.stringify(game)})})
+            
