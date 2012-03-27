@@ -8,6 +8,8 @@ html
         div#page-wrapper
             div.acronym-wrapper
                 span#acronym.acronym(align="center")
+            div.timer-wrapper
+                div.timer
             div.instructions-wrapper 
                 span#instructions.instructions
                 br
@@ -32,11 +34,11 @@ html
                 $("#acronym").text(game.acronym)
                 $("#instructions").text(game.help)
                 $("#entries-count").text(game.entries.length.toString())
-                $("#votes-count").text(game.votes.toString())
+                $("#votes-count").text(game.votes.length.toString())
                 $("#phrases").empty()
                 for( x in game.entries ){
                     var entry = game.entries[x]
-                    $("#phrases").append("<tr><td><input class='voteButton' type='button' id='vote" + x + "' value='"+ x +"'></input></td><td>" + entry.text + "</td><td><span class='votes'>" + entry.votes.toString() + "</span></td></tr>")
+                    $("#phrases").append("<tr><td><input class='voteButton' type='button' id='vote" + x + "' value='"+ x +"'></input></td><td>" + entry.text + "</td><td><span class='votes'>" + entry.votes.length.toString() + "</span></td></tr>")
                     // Add the handler
                     $('#vote' + x).click( function() {
                         socket.emit('vote', {"number" : $(this).val()})
@@ -57,6 +59,9 @@ html
                     $(".instructions").css({background: "#FAF2CF"})
                     $("#datasend").prop("disabled", false)
                     $("#data").prop("disabled", false)
+                    
+                    // Set the timer
+                    $(".timer").show().animate({width:'hide'},2000, 'linear');
                 }
                 else if (game.state == 'vote'){
                     $("#phrases").show()

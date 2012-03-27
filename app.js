@@ -40,16 +40,16 @@ io.sockets.on('connection', function (socket) {
 	
 	// User sends an entry or vote
 	socket.on('entry', function(data) {
-		var entries = game.addEntry(data.text)
+		var entries = game.addEntry(socket.id, data.text)
 		if (entries)
 			io.sockets.emit('game', 'SERVER', {entries: entries})
 	})
     
     // User sends an entry or vote
 	socket.on('vote', function(data) {
-		var votes = game.addVote(data.number)
+		var votes = game.addVote(socket.id, data.number)
 		if (votes)
-			io.sockets.emit('game', 'SERVER', {votes: votes})
+			io.sockets.emit('game', 'SERVER', {votes: votes.length})
 	})
 
 	// when the client emits 'sendchat', this listens and executes
